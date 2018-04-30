@@ -29,7 +29,7 @@ getwd()
 Balance_on_goods_and_services <- read_excel("536802.xls", 
                                             sheet = "Data1", col_types = c("date", 
                                                                            "text"),range = cell_cols("A:B"))
-View(mydata)
+
 # create data-frame with desired rows and columns from original dataset
 mydata <- Balance_on_goods_and_services[-c(1:9),]
 str(mydata) # Balance is in char format and date is in POSIXct format
@@ -69,8 +69,8 @@ unique(business_indicators$TSEST)
 #TSEST - 10-Original, 20-Seasonally Adjusted, 30-Trend
 business_indicators$MEASURE[business_indicators$MEASURE == '10'] <- "Sales($ Million)"
 business_indicators$MEASURE[business_indicators$MEASURE == '50'] <- "Inventories($ Million)"
-business_indicators$MEASURE[business_indicators$MEASURE == '90'] <- "Wages"
-business_indicators$MEASURE[business_indicators$MEASURE == '110'] <- "Gross Operating Profit"
+business_indicators$MEASURE[business_indicators$MEASURE == '90'] <- "Wages($ Million)"
+business_indicators$MEASURE[business_indicators$MEASURE == '110'] <- "Gross Operating Profit($ Million)"
 unique(business_indicators$MEASURE)
 #business_indicators %>% count(MEASURE) #Inventories seem to be inconsistent with others
 #business_indicators$MEASURE <- as.factor(business_indicators$MEASURE)
@@ -235,6 +235,36 @@ head(cpi_tidydf)
 names(cpi_tidydf)[3] <- c("Consumer Price Index(CPI)")
 head(cpi_tidydf)
 
+
+# Labourforce -------------------------------------------------------------
+
+Labourforce <- read_excel("6202001.xls", 
+                                        sheet = "Data1",skip=9,col_types="date",range=cell_cols("A"))
+Labourforce1 <- read_excel("6202001.xls", 
+                          sheet = "Data1",col_types="text",range=cell_cols("CP"))
+# create data-frame with desired rows and columns from original dataset
+Labourforce <- na.omit(Labourforce)
+Labourforce1 <- Labourforce1[-c(1:9),]
+Labourdata <- cbind(Labourforce,Labourforce1)
+View(Labourdata)
+names(Labourdata) <- c("Date","Labourforce") # Rename columns
+str(Labourdata) 
+Labourdata$Date <- as.Date(Labourdata$Date) #Convert to date format
+Labourdata$Labourforce <- as.numeric(Labourdata$Labourforce) # Convert Balance to numeric
+
+qtrDate <- quarter(Labourdata$Date,with_year = T,fiscal_start = 1) #Allocate months to quarters(Lubridate package)
+qtrDate <- gsub(".1","-Q1",qtrDate,fixed = T) #Substitute quarter numbers to explicit characters
+qtrDate <- gsub(".2", "-Q2", qtrDate, fixed = T)
+qtrDate <- gsub(".3", "-Q3", qtrDate, fixed = T)
+qtrDate <- gsub(".4", "-Q4", qtrDate, fixed = T)
+Labourdata <- Labourdata %>% mutate(qtrDate) #Add new column containing quarter to data frame 
+Labourdata <- Labourdata[,-1] #Remove date column
+Labourdata <- Labourdata %>% 
+    group_by(qtrDate) %>% 
+    summarize(Labourforce = sum(Labourforce)) #Group by year quarters and calculate sum
+Labourdata <- separate(Labourdata, qtrDate, into = c("Year", "Quarter"), sep="-") #Split quarter year column into two. One for year and other for quarter. 
+head(Labourdata)
+
 # Preparing Master Datasheet ----------------------------------------------
 
 join_df <- cpi_tidydf %>% 
@@ -245,7 +275,8 @@ join_df <- cpi_tidydf %>%
     left_join(HDI,by=c("Year" = "Year", "Quarter" = "Quarter")) %>% 
     left_join(GDP,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%  
     left_join(Balance_on_goods_and_services,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%  
-    left_join(Exchanges_Rates_tidydf,by=c("Year" = "Year", "Quarter" = "Quarter"))
+    left_join(Exchanges_Rates_tidydf,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%  
+    left_join(Labourdata,by=c("Year" = "Year", "Quarter" = "Quarter"))
 
 head(join_df)
 
