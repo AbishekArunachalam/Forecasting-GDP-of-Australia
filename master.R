@@ -261,7 +261,7 @@ Labourdata <- Labourdata %>% mutate(qtrDate) #Add new column containing quarter 
 Labourdata <- Labourdata[,-1] #Remove date column
 Labourdata <- Labourdata %>% 
     group_by(qtrDate) %>% 
-    summarize(Labourforce = sum(Labourforce)) #Group by year quarters and calculate sum
+    summarize(Labourforce = mean(Labourforce)) #Group by year quarters and calculate sum
 Labourdata <- separate(Labourdata, qtrDate, into = c("Year", "Quarter"), sep="-") #Split quarter year column into two. One for year and other for quarter. 
 head(Labourdata)
 
