@@ -8,4 +8,4 @@ head(GDP)
 GDP <- separate(GDP,obsTime, into = c("Year", "Quarter"), sep="-")
 colnames(GDP)[3] <- "GDP(US$ Millions)"
 View(GDP)
-write.csv(file = "GDP.csv",GDP)
+
