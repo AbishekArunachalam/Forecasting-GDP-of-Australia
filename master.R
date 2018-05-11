@@ -23,7 +23,7 @@ providers <- getSDMXServiceProviders()
 p<-as.data.frame(providers)
 
 getwd()
-
+#setwd("C:/Users/saminathan/Documents/STDS_Group")
 # Balance of goods and Services in Millions -------------------------------
 
 Balance_on_goods_and_services <- read_excel("536802.xls", 
@@ -265,6 +265,46 @@ Labourdata <- Labourdata %>%
 Labourdata <- separate(Labourdata, qtrDate, into = c("Year", "Quarter"), sep="-") #Split quarter year column into two. One for year and other for quarter. 
 head(Labourdata)
 
+
+# Population --------------------------------------------------------------
+
+url = "http://stat.data.abs.gov.au/restsdmx/sdmx.ashx/GetData/ERP_QUARTERLY/1.0.3.TT.Q/all?startTime=1981-Q3&endTime=2017-Q3"
+
+population <- readSDMX(url,dsd = T)
+population <- as.data.frame(population)
+head(population)
+population<- population %>% filter(STATE=='0')
+population <- population[,c("obsTime","obsValue")]
+population <- population %>% separate(obsTime, into = c("Year", "Quarter"), sep="-")
+#Add values manually from ABS
+#24,930,937,- 
+population.latest1 <-data.frame(Year ='2017',Quarter='Q4',obsValue=24814851)
+population.latest2 <-data.frame(Year ='2018',Quarter='Q1',obsValue=24910737)
+rbind(population,population.latest1,population.latest2)
+head(population)
+colnames(population)[3] <- c("Tot_Population")
+
+
+# Stock Price Index -------------------------------------------------------
+
+ASX50 <- read_excel("ASX 50 (XFL).xlsx",col_types = c("date","numeric","numeric","numeric","numeric","numeric"),range = cell_cols("A:F"))
+ASX50 <- ASX50[-(1:5),]
+ASX50$`S&P/ASX 50 (XFL)` <- as.Date(ASX50$`S&P/ASX 50 (XFL)`)
+ASX50 <- ASX50[,c(1,6)]
+names(ASX50) <- c("Date","ASX50change")
+qtrDate <- quarter(ASX50$Date,with_year = T,fiscal_start = 1) #Allocate months to quarters(Lubridate package)
+qtrDate <- gsub(".1","-Q1",qtrDate,fixed = T) #Substitute quarter numbers to explicit characters
+qtrDate <- gsub(".2", "-Q2", qtrDate, fixed = T)
+qtrDate <- gsub(".3", "-Q3", qtrDate, fixed = T)
+qtrDate <- gsub(".4", "-Q4", qtrDate, fixed = T)
+ASX50 <- ASX50 %>% mutate(qtrDate) #Add new column containing quarter to data frame 
+ASX50 <- ASX50[,-which(names(ASX50) %in% c("Date"))]
+ASX50 <- ASX50 %>% group_by(qtrDate) %>% summarize(ASX50change=mean(ASX50change)) #Group by year quarters and calculate sum
+ASX50 <- separate(ASX50, qtrDate, into = c("Year", "Quarter"), sep="-") #Split quarter year column into two. One for year and other for quarter. 
+colnames(ASX50)[3] <- "ASX50(%change)"
+head(ASX50)
+
+
 # Preparing Master Datasheet ----------------------------------------------
 
 join_df <- cpi_tidydf %>% 
@@ -276,12 +316,126 @@ join_df <- cpi_tidydf %>%
     left_join(GDP,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%  
     left_join(Balance_on_goods_and_services,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%  
     left_join(Exchanges_Rates_tidydf,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%  
-    left_join(Labourdata,by=c("Year" = "Year", "Quarter" = "Quarter"))
+    left_join(Labourdata,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%
+    left_join(population,by=c("Year" = "Year", "Quarter" = "Quarter")) %>%
+    left_join(ASX50,by=c("Year" = "Year", "Quarter" = "Quarter"))
 
 head(join_df)
 
-# Filtering data from 1970 ------------------------------------------------
+# Filtering data from 1980 ------------------------------------------------
+rm(master_df)
+master_df <- join_df %>% filter(Year >= "1980")
+head(master_df)
+master_df$`Wages($ Million)`[which(master_df$`Wages($ Million)` ==0.00)] <- NA
 
-master_df <- join_df %>% filter(Year >= "1970")
-write.csv(file="master.csv",master_df)
 
+#write.csv(file="master1.csv",master_df)
+## ImputeTs ----------------------------------------------------------------
+install.packages("imputeTS")
+library(imputeTS)
+#data("tsAirgap")
+#str(tsAirgap)
+imp <- na.kalman(master_df)
+imp1<- imp %>% mutate(lb_percent= (Labourforce/Tot_Population)*100) # Labour Percentage
+head(imp1,20)
+
+write.csv(file="master_new.csv",imp1)
+
+
+# HMISC -------------------------------------------------------------------
+
+# install.packages("Hmisc")
+# library(Hmisc)
+# names(master_df)[4:8]<-c("GOP","Inv","Sales","Wages","Exp")
+# names(master_df)[11]<- c("HDI")
+# names(master_df)[13]<- c("Balance")
+# names(master_df)[15]<- c("Lb")
+# names(master_df)[3]<- c("CPI")
+# 
+# head(master_df)
+# impute_arg <- aregImpute(~`Gross Operating Profit($ Million)` + `Inventories($ Million)`+ `Sales($ Million)`+ `Wages($ Million)`+ `Expenditure($ Million)`+`HDI(%)`+ `Tot_Population`, data = master_df,type="regression",x=T)
+# impute_arg$imputed$`Gross Operating Profit($ Million)`
+# impute_arg$imputed$Inv
+# impute_arg$imputed$Sales
+# impute_arg$imputed$Wages
+# impute_arg$imputed$Exp
+# impute_arg$imputed$HDI
+# impute_arg$imputed$Balance
+# impute_arg$imputed$Lb
+# 
+# impute_arg$imputed[[1]][,5]
+# head(master_df$impute_arg)
+# 
+# # missForest --------------------------------------------------------------
+# 
+# install.packages("missForest")
+# library(missForest)
+# missForest(master_df, maxiter = 10, ntree = 100)
+
+
+
+
+
+
+
+# 
+# 
+# 
+# # mi ----------------------------------------------------------------------
+# install.packages("mi")
+# install.packages("betareg")
+# library(mi)
+# library(betareg)
+# show(master_df)
+# imputations <- mi(mi_df, n.iter = 30, n.chains = 4, max.minutes = 20)
+# mi_df<- master_df[,!(colnames(master_df) %in% c("Percentage unemployed %"))]
+# head(mi_df)
+# 
+# 
+# # mice --------------------------------------------------------------------
+# 
+# master.imp<- mice(master_df,seed=103)
+# head(master_df)
+# 
+# 
+# # imputeR -----------------------------------------------------------------
+# 
+# install.packages("imputeR")
+# library(imputeR)
+# Detect(master_df,n=5)
+# install.packages("earth")
+# library(earth)
+# impR<-impute(master_df,lmFun = "earth", cFun = "rpartC")
+# 
+# 
+# # KNN Imputation ----------------------------------------------------------
+# 
+# install.packages("DMwR")
+# library(DMwR)
+# head(master_df)
+# knnOutput <- knnImputation(master_df)
+# 
+# 
+# # missMDA -----------------------------------------------------------------
+# 
+# install.packages("missMDA")
+# library(missMDA)
+# install.packages("FactoMineR")
+# library(FactoMineR)
+# master_sub<- master_df[,3:length(master_df)]
+# nb = estim_ncpPCA(master_sub,ncp.max=5)
+# res.mas = imputePCA(master_sub,ncp=2)
+# res.pca = PCA(res.mas$completeObs)
+# 
+# 
+# resMI = imputeMCA(master_sub,ncp=2)
+# 
+# 
+# 
+# # MTsdi -------------------------------------------------------------------
+# 
+# install.packages("mtsdi")
+# library(mtsdi)
+# head(master_df)
+# master_sub1<- master_df[,!(colnames(master_df) %in% c("Balance_on_goods_and_services($ Million)"))]
+# mtsdi_mas<- mnimput(~`Gross Operating Profit($ Million)` + `Inventories($ Million)`+ `Sales($ Million)`+ `Wages($ Million)`+ `Expenditure($ Million)`+`HDI(%)`+ `Tot_Population`,dataset=master_sub1, method = "arima")
