@@ -25,9 +25,3 @@ Labourdata <- Labourdata[-c(1:8,161),]
 Labourdata <- separate(Labourdata, qtrDate, into = c("Year", "Quarter"), sep="-") #Split quarter year column into two. One for year and other for quarter. 
 head(Labourdata)
 
-
-
-
-trDate, into = c("Year", "Quarter"), sep="-") #Split quarter year column into two. One for year and other for quarter. 
-head(interestRates)
-colnames(interestRates)[3] <- "3-month Monthly Average Interest Rates(%)"
