@@ -239,14 +239,13 @@ head(cpi_tidydf)
 # Labourforce -------------------------------------------------------------
 
 Labourforce <- read_excel("6202001.xls", 
-                                        sheet = "Data1",skip=9,col_types="date",range=cell_cols("A"))
+                          sheet = "Data1",skip=9,col_types="date",range=cell_cols("A"))
 Labourforce1 <- read_excel("6202001.xls", 
-                          sheet = "Data1",col_types="text",range=cell_cols("CP"))
+                           sheet = "Data1",col_types="text",range=cell_cols("CY"))
 # create data-frame with desired rows and columns from original dataset
 Labourforce <- na.omit(Labourforce)
 Labourforce1 <- Labourforce1[-c(1:9),]
-Labourdata <- cbind(Labourforce,Labourforce1)
-View(Labourdata)
+Labourdata <- as.data.frame(cbind(Labourforce,Labourforce1))
 names(Labourdata) <- c("Date","Labourforce") # Rename columns
 str(Labourdata) 
 Labourdata$Date <- as.Date(Labourdata$Date) #Convert to date format
@@ -260,10 +259,11 @@ qtrDate <- gsub(".4", "-Q4", qtrDate, fixed = T)
 Labourdata <- Labourdata %>% mutate(qtrDate) #Add new column containing quarter to data frame 
 Labourdata <- Labourdata[,-1] #Remove date column
 Labourdata <- Labourdata %>% 
-    group_by(qtrDate) %>% 
-    summarize(Labourforce = mean(Labourforce)) #Group by year quarters and calculate sum
+  group_by(qtrDate) %>% 
+  dplyr::summarize(mean(Labourforce)) #Group by year quarters and calculate sum
+Labourdata <- Labourdata[-c(1:8,161),]
 Labourdata <- separate(Labourdata, qtrDate, into = c("Year", "Quarter"), sep="-") #Split quarter year column into two. One for year and other for quarter. 
-head(Labourdata)
+names(Labourdata) <- c("Year","Quarter","LabourParticipationRate(%)")
 
 
 # Population --------------------------------------------------------------
