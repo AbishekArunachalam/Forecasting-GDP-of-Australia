@@ -15,16 +15,16 @@ During the initial analysis we found that Human Development Index (HDI), Invento
 Population were important influencers that contribute to the Australian GDP. 
 
 
-## Time series modelling
+## Time-series modelling
 
 Time-series models with different parameter settings were run on the dataset:
 
-** * ARMA **
-* ARIMA
-* SARIMA
-* Simple Exponential Smoothing
-* Holt Winter's Exponential Smoothing (Additive method) 
-* TBATS
+* **ARMA**
+* **ARIMA**
+* **SARIMA**
+* **Simple Exponential Smoothing**
+* **Holt Winter's Exponential Smoothing (Additive method)** 
+* **TBATS**
 
 TBATS gave the best forecast accuracy on the test set with a Mean Average Error(MAE) of 0.0085. Then this model
 was used to forecast the GDP till the year 2024.
