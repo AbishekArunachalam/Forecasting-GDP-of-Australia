@@ -7,8 +7,8 @@ constant growth in GDP without large fluctuations signify that the country is
 performing well economically. The factors that contribute to the growth of GDP
 varies between countries.
 
-GDP= Consumption or Consumer spending (C) + Government spending (G) + 
-Investment of country (I) + Business capital expenditures (NX).
+**GDP= Consumption or Consumer spending (C) + Government spending (G) + 
+Investment of country (I) + Business capital expenditures (NX).**
 
 My team gathered important indicators that substituted the formula and we created the master dataset.
 During the initial analysis we found that Human Development Index (HDI), Inventories, Interest rates and 
@@ -19,7 +19,7 @@ Population were important influencers that contribute to the Australian GDP.
 
 Time-series models with different parameter settings were run on the dataset:
 
-*** ARMA**
+** * ARMA **
 * ARIMA
 * SARIMA
 * Simple Exponential Smoothing
